@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "wasantalal/doc_env:latest"
-        DOCKERHUB_CREDENTIALS = "96842ae0-a7b8-4b40-9641-1aee875d7682"
+        DOCKERHUB_CREDENTIALS = ""
         GITHUB_REPO = "https://github.com/wasantalal/jenkinspractice.git"
     }
 
