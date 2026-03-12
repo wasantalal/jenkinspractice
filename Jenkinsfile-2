@@ -6,7 +6,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = "395b0174-e472-49eb-b75a-15b55d0dab4d"
         GITHUB_REPO = "https://github.com/wasantalal/jenkinspractice.git"
         
-        // These will point to the temporary files created by Jenkins
+        // Secret files for cosign keys
         COSIGN_PRIVATE_KEY = credentials('cosign-private-key')
         COSIGN_PUBLIC_KEY = credentials('cosign-public-key')
         COSIGN_PASSWORD = credentials('cosign-password')
@@ -30,28 +30,36 @@ pipeline {
             }
         }
 
-        stage('Sign Image with Cosign') {
+        stage('Login to DockerHub') {
             steps {
-                echo "Signing Docker image with Cosign private key..."
-                script {
-                    // The secret file is automatically available at the path in COSIGN_PRIVATE_KEY
-                    bat """
-                        echo %COSIGN_PASSWORD% | cosign sign --key "%COSIGN_PRIVATE_KEY%" ^
-                            %DOCKER_IMAGE%
-                    """
-                }
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                echo "Logging into DockerHub and pushing image..."
+                echo "Logging into DockerHub..."
                 script {
                     bat """
                         echo %DOCKERHUB_CREDENTIALS_PSW% | docker login ^
                             -u %DOCKERHUB_CREDENTIALS_USR% ^
                             --password-stdin
-                        docker push %DOCKER_IMAGE%
+                    """
+                }
+            }
+        }
+
+        stage('Push Image to DockerHub') {
+            steps {
+                echo "Pushing image to DockerHub..."
+                bat """
+                    docker push %DOCKER_IMAGE%
+                """
+            }
+        }
+
+        stage('Sign Image with Cosign') {
+            steps {
+                echo "Signing Docker image with Cosign private key..."
+                script {
+                    // Note: We're already logged into DockerHub from previous stage
+                    bat """
+                        echo %COSIGN_PASSWORD% | cosign sign --key "%COSIGN_PRIVATE_KEY%" ^
+                            %DOCKER_IMAGE%
                     """
                 }
             }
@@ -61,7 +69,6 @@ pipeline {
             steps {
                 echo "Verifying image signature with Cosign public key..."
                 script {
-                    // The secret file is automatically available at the path in COSIGN_PUBLIC_KEY
                     bat """
                         cosign verify --key "%COSIGN_PUBLIC_KEY%" ^
                             %DOCKER_IMAGE%
@@ -74,10 +81,18 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully! Image built, signed, pushed, and verified."
+            echo "Pipeline completed successfully! Image built, pushed, signed, and verified."
         }
         failure {
             echo "Pipeline failed."
+        }
+        always {
+            script {
+                // Logout from DockerHub
+                bat """
+                    docker logout
+                """
+            }
         }
     }
 }
