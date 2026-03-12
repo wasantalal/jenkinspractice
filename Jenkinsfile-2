@@ -49,7 +49,6 @@ stage('Verify Cosign Installation') {
                     // Sign the image - removed the icacls command completely
                     bat """
                         echo %COSIGN_PASSWORD% | cosign sign --key cosign.key ^
-                            --tlog-upload=false ^
                             %DOCKER_IMAGE%
                     """
                     
@@ -87,7 +86,6 @@ stage('Verify Cosign Installation') {
                     // Verify the signature
                     bat """
                         cosign verify --key cosign.pub ^
-                            --insecure-ignore-tlog=true ^
                             %DOCKER_IMAGE%
                     """
                     
