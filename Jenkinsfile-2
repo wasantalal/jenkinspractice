@@ -22,11 +22,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker Image using native Docker commands..."
-                script {
-                    sh """
-                        docker build -t ${DOCKER_IMAGE} .
-                    """
-                }
+                bat """
+                    docker build -t %DOCKER_IMAGE% .
+                """
             }
         }
 
@@ -34,22 +32,22 @@ pipeline {
             steps {
                 echo "Signing Docker image with Cosign private key..."
                 script {
-                    // Write private key to file
-                    sh """
-                        echo "${COSIGN_PRIVATE_KEY}" > cosign.key
-                        chmod 600 cosign.key
+                    // Write private key to file using batch commands
+                    bat """
+                        echo %COSIGN_PRIVATE_KEY% > cosign.key
+                        icacls cosign.key /inheritance:r /grant:r "%USERNAME%:F"
                     """
                     
                     // Sign the image
-                    sh """
-                        echo "${COSIGN_PASSWORD}" | cosign sign --key cosign.key \
-                            --tlog-upload=false \
-                            ${DOCKER_IMAGE}
+                    bat """
+                        echo %COSIGN_PASSWORD% | cosign sign --key cosign.key ^
+                            --tlog-upload=false ^
+                            %DOCKER_IMAGE%
                     """
                     
                     // Clean up private key
-                    sh """
-                        rm cosign.key
+                    bat """
+                        del cosign.key
                     """
                 }
             }
@@ -59,11 +57,11 @@ pipeline {
             steps {
                 echo "Logging into DockerHub and pushing image..."
                 script {
-                    sh """
-                        echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login \
-                            -u "${DOCKERHUB_CREDENTIALS_USR}" \
+                    bat """
+                        echo %DOCKERHUB_CREDENTIALS_PSW% | docker login ^
+                            -u %DOCKERHUB_CREDENTIALS_USR% ^
                             --password-stdin
-                        docker push ${DOCKER_IMAGE}
+                        docker push %DOCKER_IMAGE%
                     """
                 }
             }
@@ -74,20 +72,20 @@ pipeline {
                 echo "Verifying image signature with Cosign public key..."
                 script {
                     // Write public key to file
-                    sh """
-                        echo "${COSIGN_PUBLIC_KEY}" > cosign.pub
+                    bat """
+                        echo %COSIGN_PUBLIC_KEY% > cosign.pub
                     """
                     
                     // Verify the signature
-                    sh """
-                        cosign verify --key cosign.pub \
-                            --insecure-ignore-tlog=true \
-                            ${DOCKER_IMAGE}
+                    bat """
+                        cosign verify --key cosign.pub ^
+                            --insecure-ignore-tlog=true ^
+                            %DOCKER_IMAGE%
                     """
                     
                     // Clean up public key
-                    sh """
-                        rm cosign.pub
+                    bat """
+                        del cosign.pub
                     """
                 }
             }
