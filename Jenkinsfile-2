@@ -5,6 +5,8 @@ pipeline {
         DOCKER_IMAGE = "wasantalal/doc_env:latest"
         DOCKERHUB_CREDENTIALS = "395b0174-e472-49eb-b75a-15b55d0dab4d"
         GITHUB_REPO = "https://github.com/wasantalal/jenkinspractice.git"
+        
+        // These will point to the temporary files created by Jenkins
         COSIGN_PRIVATE_KEY = credentials('cosign-private-key')
         COSIGN_PUBLIC_KEY = credentials('cosign-public-key')
         COSIGN_PASSWORD = credentials('cosign-password')
@@ -32,9 +34,9 @@ pipeline {
             steps {
                 echo "Signing Docker image with Cosign private key..."
                 script {
-                    // Use the private key directly from credentials
+                    // The secret file is automatically available at the path in COSIGN_PRIVATE_KEY
                     bat """
-                        echo %COSIGN_PASSWORD% | cosign sign --key env://COSIGN_PRIVATE_KEY ^
+                        echo %COSIGN_PASSWORD% | cosign sign --key "%COSIGN_PRIVATE_KEY%" ^
                             %DOCKER_IMAGE%
                     """
                 }
@@ -59,9 +61,9 @@ pipeline {
             steps {
                 echo "Verifying image signature with Cosign public key..."
                 script {
-                    // Use the public key directly from credentials
+                    // The secret file is automatically available at the path in COSIGN_PUBLIC_KEY
                     bat """
-                        cosign verify --key env://COSIGN_PUBLIC_KEY ^
+                        cosign verify --key "%COSIGN_PUBLIC_KEY%" ^
                             %DOCKER_IMAGE%
                     """
                 }
