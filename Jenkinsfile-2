@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "wasantalal/doc_env:latest"
+        DOCKERHUB_CREDENTIALS = "395b0174-e472-49eb-b75a-15b55d0dab4d"
+        GITHUB_REPO = "https://github.com/wasantalal/jenkinspractice.git"
+        COSIGN_PRIVATE_KEY = credentials('cosign-private-key')
+        COSIGN_PUBLIC_KEY = credentials('cosign-public-key')
+        COSIGN_PASSWORD = credentials('cosign-password')
+    }
+
+    stages {
+
+        stage('Get Code From GitHub') {
+            steps {
+                echo "Cloning repository..."
+                git branch: 'main', url: "${GITHUB_REPO}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker Image using native Docker commands..."
+                script {
+                    sh """
+                        docker build -t ${DOCKER_IMAGE} .
+                    """
+                }
+            }
+        }
+
+        stage('Sign Image with Cosign') {
+            steps {
+                echo "Signing Docker image with Cosign private key..."
+                script {
+                    // Write private key to file
+                    sh """
+                        echo "${COSIGN_PRIVATE_KEY}" > cosign.key
+                        chmod 600 cosign.key
+                    """
+                    
+                    // Sign the image
+                    sh """
+                        echo "${COSIGN_PASSWORD}" | cosign sign --key cosign.key \
+                            --tlog-upload=false \
+                            ${DOCKER_IMAGE}
+                    """
+                    
+                    // Clean up private key
+                    sh """
+                        rm cosign.key
+                    """
+                }
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                echo "Logging into DockerHub and pushing image..."
+                script {
+                    sh """
+                        echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login \
+                            -u "${DOCKERHUB_CREDENTIALS_USR}" \
+                            --password-stdin
+                        docker push ${DOCKER_IMAGE}
+                    """
+                }
+            }
+        }
+
+        stage('Verify Signature with Cosign') {
+            steps {
+                echo "Verifying image signature with Cosign public key..."
+                script {
+                    // Write public key to file
+                    sh """
+                        echo "${COSIGN_PUBLIC_KEY}" > cosign.pub
+                    """
+                    
+                    // Verify the signature
+                    sh """
+                        cosign verify --key cosign.pub \
+                            --insecure-ignore-tlog=true \
+                            ${DOCKER_IMAGE}
+                    """
+                    
+                    // Clean up public key
+                    sh """
+                        rm cosign.pub
+                    """
+                }
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully! Image built, signed, pushed, and verified."
+        }
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
