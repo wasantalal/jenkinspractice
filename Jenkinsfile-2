@@ -32,13 +32,12 @@ pipeline {
             steps {
                 echo "Signing Docker image with Cosign private key..."
                 script {
-                    // Write private key to file using batch commands
+                    // Write private key to file
                     bat """
                         echo %COSIGN_PRIVATE_KEY% > cosign.key
-                        icacls cosign.key /inheritance:r /grant:r "%USERNAME%:F"
                     """
                     
-                    // Sign the image
+                    // Sign the image - removed the icacls command completely
                     bat """
                         echo %COSIGN_PASSWORD% | cosign sign --key cosign.key ^
                             --tlog-upload=false ^
