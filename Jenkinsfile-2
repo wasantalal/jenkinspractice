@@ -28,15 +28,6 @@ pipeline {
             }
         }
 
-stage('Verify Cosign Installation') {
-    steps {
-        bat """
-            where cosign
-            cosign version
-        """
-    }
-}
-
         stage('Sign Image with Cosign') {
             steps {
                 echo "Signing Docker image with Cosign private key..."
