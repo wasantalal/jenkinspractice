@@ -32,20 +32,10 @@ pipeline {
             steps {
                 echo "Signing Docker image with Cosign private key..."
                 script {
-                    // Write private key to file
+                    // Use the private key directly from credentials
                     bat """
-                        echo %COSIGN_PRIVATE_KEY% > cosign.key
-                    """
-                    
-                    // Sign the image - removed the icacls command completely
-                    bat """
-                        echo %COSIGN_PASSWORD% | cosign sign --key cosign.key ^
+                        echo %COSIGN_PASSWORD% | cosign sign --key env://COSIGN_PRIVATE_KEY ^
                             %DOCKER_IMAGE%
-                    """
-                    
-                    // Clean up private key
-                    bat """
-                        del cosign.key
                     """
                 }
             }
@@ -69,20 +59,10 @@ pipeline {
             steps {
                 echo "Verifying image signature with Cosign public key..."
                 script {
-                    // Write public key to file
+                    // Use the public key directly from credentials
                     bat """
-                        echo %COSIGN_PUBLIC_KEY% > cosign.pub
-                    """
-                    
-                    // Verify the signature
-                    bat """
-                        cosign verify --key cosign.pub ^
+                        cosign verify --key env://COSIGN_PUBLIC_KEY ^
                             %DOCKER_IMAGE%
-                    """
-                    
-                    // Clean up public key
-                    bat """
-                        del cosign.pub
                     """
                 }
             }
