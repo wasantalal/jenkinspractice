@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "wasantalal/doc_env:latest"
-        DOCKERHUB_CREDENTIALS = "395b0174-e472-49eb-b75a-15b55d0dab4d"
+        DOCKERHUB_CREDENTIALS = credentials('395b0174-e472-49eb-b75a-15b55d0dab4d')
         GITHUB_REPO = "https://github.com/wasantalal/jenkinspractice.git"
         
         // Secret files for cosign keys
